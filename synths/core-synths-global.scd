@@ -76,7 +76,7 @@ CORE SYNTHDEFS FOR DIRT
 
 	if(\SwitchDelay.asClass.notNil) {
 
-		SynthDef("dirt_delay" ++ numChannels, { |dryBus, effectBus, gate = 1, delaytime, delayfeedback, delaySend = 1, delayAmp = 1, lock = 0, cps = 1|
+		SynthDef("dirt_delay" ++ numChannels, { |dryBus, effectBus, gate = 1, delaytime, delayfeedback, delaySend = 0, delayamp = 1, sdelay = 0, cps = 1|
 			var signal;
 			var input = In.ar(dryBus, numChannels);
 			var maxDelayTime = 4;
@@ -84,17 +84,17 @@ CORE SYNTHDEFS FOR DIRT
 			input = input * delaySend.lag(LFNoise1.kr(1).range(0.01, 0.02)); // regulate input
 
 			delayfeedback = delayfeedback.max(0);
-			delaytime = delaytime * if(lock, reciprocal(cps), 1);
+			delaytime = delaytime * if(sdelay, reciprocal(cps), 1);
 			delaytime = delaytime.clip(0, maxDelayTime); // just to be sure
 			// from sc3-plugins
-			signal = \SwitchDelay.asClass.ar(input, 1, 1, delaytime, delayfeedback, maxDelayTime);
+			signal = SwitchDelay.ar(input, 1, 1, delaytime, delayfeedback, maxDelayTime);
 
 			DetectSilence.ar(signal, time:1, doneAction: 1);
 			// doesn't work properly. We don't really know when it's not used anymore.
 			// this would have to be an explicit signal from sclang
 
-			signal = signal * EnvGen.kr(Env.asr, gate, doneAction:2);
-			signal = signal * delayAmp.lag(0.01);
+			// signal = signal * EnvGen.kr(Env.asr, gate, doneAction:2);
+			signal = signal * delayamp.lag(0.01);
 
 			DirtPause.ar(signal, graceTime:4);
 

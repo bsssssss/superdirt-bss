@@ -64,6 +64,7 @@ DirtEvent {
 		var accelerate = ~accelerate.value;
 		var avgSpeed, endSpeed;
 		var useUnit;
+		// var adsr_sum;
 
 		~freq = ~freq.value;
 		unitDuration = ~unitDuration.value;
@@ -109,15 +110,21 @@ DirtEvent {
 			}
 		};
 
+		// adsr_sum = ~attack.value + ~decay.value + ~release.value;
+		if (~release.notNil) {~release} {~release = 0.0};
+		// if (~adsr_sum.notNil) {~adsr_sum} {~adsr_sum = 0.0};
+
 		// end samples if sustain exceeds buffer duration
 		// for every buffer, unitDuration is (and should be) defined.
 		if(useUnit) { sustain = min(unitDuration, sustain) };
 
-		~fadeTime = min(~fadeTime.value, sustain * 0.19098);
+		~fadeTime   = min(~fadeTime.value, sustain * 0.19098);
 		~fadeInTime = if(~begin != 0) { ~fadeTime } { 0.0 };
 		if (~timescale.notNil) {sustain = sustain * ~timescale };
-		~sustain = sustain - (~fadeTime + ~fadeInTime);
-		~speed = speed;
+		if (~release.notNil)   {sustain = sustain + ~release};
+		// if (~adsr_sum.notNil)  {sustain = sustain + adsr_sum};
+		~sustain  = sustain - (~fadeTime + ~fadeInTime);
+		~speed    = speed;
 		~endSpeed = endSpeed;
 
 	}

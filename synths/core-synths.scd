@@ -174,10 +174,10 @@ live coding them requires that you have your SuperDirt instance in an environmen
 	// the monitor does the mixing and zeroing of the busses for each sample grain
 	// so that they can all play in one bus
 
-	SynthDef("dirt_gate" ++ numChannels, { |out, in, sustain = 1, fadeInTime = 0.001, fadeTime = 0.001, amp = 1, gain = 1, overgain = 0|
+	SynthDef("dirt_gate" ++ numChannels, { |out, in, sustain = 1, fadeInTime = 0.001, fadeTime = 0.001, release=0.1, amp = 1, gain = 1, overgain = 0|
 		var signal = In.ar(in, numChannels);
 		 //  doneAction: 14: free surrounding group and all nodes
-		var env = EnvGen.ar(Env([0, 1, 1, 0], [fadeInTime, sustain, fadeTime], \sin), doneAction: 14);
+		var env = EnvGen.ar(Env([0, 1, 1, 0], [fadeInTime, sustain + release, fadeTime], \sin), doneAction: 14);
 		amp = amp * pow(gain.min(2) + overgain, 4);
 		signal = signal * env * amp * DirtGateCutGroup.ar(fadeTime, doneAction: 14);
 		// this takes the signal and offsets it so it matches precisely onto the sample
@@ -233,7 +233,6 @@ live coding them requires that you have your SuperDirt instance in an environmen
 		ReplaceOut.ar(out, signal)
 	}, [\ir, \kr]).add;
 
-
 	SynthDef("dirt_coarse" ++ numChannels, { |out, coarse = 0, bandq = 10|
 		var signal = In.ar(out, numChannels);
 		signal = Latch.ar(signal, Impulse.ar(SampleRate.ir / coarse));
@@ -270,11 +269,30 @@ live coding them requires that you have your SuperDirt instance in an environmen
 		ReplaceOut.ar(out, signal)
 	}, [\ir, \kr, \kr]).add;
 
-	SynthDef("dirt_envelope" ++ numChannels, { |out, attack = 0, hold = 0, release = inf, curve = -3 |
+/*	SynthDef("dirt_envelope" ++ numChannels, { |out, attack = 0, hold = 0, release = inf, curve = -3 |
 		var signal = In.ar(out, numChannels);
 		signal = signal * EnvGen.ar(Env.linen(attack, hold, release, 1, curve: curve));
 		ReplaceOut.ar(out, signal);
-	}, [\ir, \ir, \ir, \ir, \ir]).add;
+	}, [\ir, \ir, \ir, \ir, \ir]).add;*/
+
+	SynthDef("dirt_envelope" ++ numChannels, {
+		|out|
+
+		var attack, decay, hold, release, curve,
+		    env, signal;
+
+		signal = In.ar(out, numChannels);
+
+		attack   = \attack.kr(0);
+		decay    = \decay.kr(0.6);
+		hold     = \hold.kr(0.5);
+		release  = \release.kr(0);
+		curve    = \curve.kr(-3);
+		env = DirtADSR.ar(attack, decay, hold, release, curve, \sustain.kr(1));
+
+		signal = signal * env;
+		ReplaceOut.ar(out, signal);
+	}).add;
 
 
 	SynthDef("dirt_grain_envelope" ++ numChannels, { |out, sustain = 1, tilt = 0.5, plat = 0, curve = -3 |
@@ -293,11 +311,11 @@ live coding them requires that you have your SuperDirt instance in an environmen
 		signal = signal * env;
 
 		ReplaceOut.ar(out, signal);
-	}, [\ir, \ir, \ir, \ir, \ir]).add;
+	}, [\ir, \ir, \kr, \kr, \kr]).add;
 
 	SynthDef("dirt_pitch_shift" ++ numChannels, { |out, psrate = 1, sustain = 1, psdisp = 0|
 		var signal = In.ar(out, numChannels);
-		var windowSize = sustain.linlin(0.01, 0.3, 0.01, 0.18);
+		var windowSize = sustain.linlin(0.01, 0.3, 0.01, 0.1);
 		signal = PitchShift.ar(signal, windowSize:windowSize, pitchRatio:psrate, pitchDispersion:0, timeDispersion:psdisp);
 		ReplaceOut.ar(out, signal)
 	}, [\ir, \ir, \ir]).add;
